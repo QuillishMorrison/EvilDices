@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Потустороннее казино</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #e0e0e0;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            overflow-x: hidden;
+            transition: background 0.5s;
+        }
+
+        #game-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: rgba(26, 26, 46, 0.9);
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(255, 100, 100, 0.3);
+            position: relative;
+        }
+
+        #dice-area,
+        #shop-area,
+        #roll-result {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            min-height: 80px;
+        }
+
+        .dice,
+        .result-dice {
+            width: 70px;
+            height: 70px;
+            line-height: 70px;
+            text-align: center;
+            border: 3px solid #444;
+            cursor: pointer;
+            position: relative;
+            border-radius: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-size: 16px;
+            font-weight: bold;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .dice:hover,
+        .result-dice:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 10px rgba(255, 100, 100, 0.5);
+        }
+
+        .d6 {
+            background-color: #4a90e2;
+        }
+
+        .cursed-d6 {
+            background-color: #ff4444;
+        }
+
+        .d8 {
+            background-color: #ffcc00;
+        }
+
+        .d12 {
+            background-color: #00cc00;
+        }
+
+        .d20 {
+            background-color: #cc00cc;
+        }
+
+        .artifact {
+            background-color: #888;
+        }
+
+        .selected {
+            border-color: #ff5555;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+            /* Контрастная обводка для cursed-d6 */
+        }
+
+        .rerollable {
+            border-color: #ffaa00;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 5px #ffaa00;
+            }
+
+            50% {
+                box-shadow: 0 0 10px #ffaa00;
+            }
+
+            100% {
+                box-shadow: 0 0 5px #ffaa00;
+            }
+        }
+
+        .shop-item {
+            width: 80px;
+            height: 80px;
+            line-height: 20px;
+            padding: 5px;
+            background: linear-gradient(45deg, #333, #444);
+            border: 3px solid #666;
+            border-radius: 10px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .shop-item:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+        }
+
+        .shop-item.bought {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: linear-gradient(90deg, #666, #888);
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: linear-gradient(90deg, #888, #aaa);
+        }
+
+        button:disabled {
+            background: linear-gradient(90deg, #444, #555);
+            cursor: not-allowed;
+        }
+
+        #shop-area,
+        #roll-result {
+            display: none;
+        }
+
+        #result {
+            min-height: 60px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 5px;
+        }
+
+        .tooltip {
+            visibility: hidden;
+            width: 220px;
+            background: rgba(85, 85, 85, 0.9);
+            color: #fff;
+            text-align: center;
+            padding: 8px;
+            border-radius: 6px;
+            position: absolute;
+            z-index: 1;
+            bottom: 100%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            white-space: normal;
+            font-size: 12px;
+        }
+
+        .dice:hover .tooltip,
+        .shop-item:hover .tooltip,
+        .result-dice:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        #status {
+            margin-bottom: 20px;
+            color: #ffcccc;
+        }
+
+        h2,
+        h3 {
+            margin: 5px 0;
+        }
+
+        #shop-area .buy-btn {
+            margin-top: 5px;
+            width: 70px;
+            padding: 5px;
+            font-size: 12px;
+        }
+
+        #tutorial-screen,
+        #end-screen {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            color: #ff4444;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            font-size: 18px;
+        }
+
+        #tutorial-screen.show,
+        #end-screen.show {
+            display: flex;
+        }
+
+        #devil-comment {
+            margin-top: 10px;
+            color: #ff5555;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="game-container">
+        <div id="status">
+            <h2>Очки: <span id="points">0</span> / 666</h2>
+            <h3>Раунд: <span id="round">1</span> / 20</h3>
+            <p>Артефакты: <span id="artifacts">Нет</span></p>
+            <div id="devil-comment"></div>
+        </div>
+        <div id="dice-area"></div>
+        <button id="roll-button">БРОСИТЬ</button>
+        <div id="roll-result"></div>
+        <div id="result"></div>
+        <div id="shop-area"></div>
+        <div id="tutorial-screen">
+            <h1>Добро пожаловать в адскую игру!</h1>
+            <p>Я — Дьявол, и ты, пьяный дурак, посмел мне нагрубить! Теперь играем по моим правилам: тебе нужно набрать
+                666 очков за 20 раундов с помощью кубиков. Проиграешь — твоя душа моя!</p>
+            <p><strong>Как играть:</strong></p>
+            <ul>
+                <li>Выбери кубики слева и нажми "БРОСИТЬ", чтобы бросить их.</li>
+                <li>В магазине (справа) покупай новые кубики или артефакты за очки.</li>
+                <li>Каждый слот в магазине можно купить только раз за раунд.</li>
+                <li>Артефакты (например, "Колесо удачи") дают бонусы, но только один за раунд.</li>
+                <li>Обнови магазин за 5 очков или бесплатно, если у тебя два cursed-d6.</li>
+            </ul>
+            <p>Я слежу за каждым твоим броском! Нажми "Понял" и начнем.</p>
+            <button id="start-button">Понял</button>
+        </div>
+        <div id="end-screen">
+            <h1 id="end-message"></h1>
+            <p>Итог: <span id="final-score"></span> очков за <span id="final-rounds"></span> раундов</p>
+            <button id="restart-button">Начать заново</button>
+        </div>
+    </div>
+    <script>
+        let points = 0;
+        let round = 1;
+        let maxRounds = 20;
+        let dice = [
+            { type: 'd6', id: 1, color: 'd6', passive: null },
+            { type: 'd6', id: 2, color: 'd6', passive: null },
+            { type: 'd6', id: 3, color: 'd6', passive: null }
+        ];
+        let artifacts = [];
+        let maxDiceRoll = 3;
+        let selectedDice = [];
+        let shopItems = [];
+        let rollResults = [];
+        let artifactBoughtThisRound = false;
+        let freeShopRerollActive = false;
+        let boughtItemsThisShop = new Set();
+        let gameStarted = false;
+        let prestigeLevel = 0;
+
+        const diceTypes = {
+            'd6': { sides: 6, cost: 10, color: 'd6', spell: null, description: 'Обычный кубик, дает 1–6 очков.' },
+            'cursed-d6': { sides: 6, cost: 15, color: 'cursed-d6', spell: { on: 6, effect: 'double', curse: 'lose5' }, description: 'При 6: x2 очков, но 30% шанс потерять 5 очков.' },
+            'd8': { sides: 8, cost: 20, color: 'd8', spell: { on: 8, effect: 'add10' }, description: 'При 8: +10 очков.' },
+            'd12': { sides: 12, cost: 30, color: 'd12', spell: { on: 12, effect: 'doubleAll' }, description: 'При 12: удваивает очки кубика.' },
+            'd20': { sides: 20, cost: 70, color: 'd20', spell: { on: 20, effect: 'add30' }, description: 'При 20: +30 очков.' }
+        };
+
+        const artifactTypes = {
+            'Мешочек': { cost: 25, effect: 'maxDiceRoll++', description: 'Увеличивает лимит кубиков для броска на 1.' },
+            'Колесо удачи': { cost: 15, effect: 'rerollOne', description: 'Кликните по результату броска для переброса (один раз).' },
+            'Зубы Сатаны': { cost: 30, effect: 'cursed+2', description: '+2 к каждому броску проклятого d6 (стакается).' },
+            'Чистая душа': { cost: 20, effect: 'reduceCurse', description: 'Отменяет негативные эффекты проклятых кубиков.' }
+        };
+
+        const prestigeArtifacts = {
+            'Кровь Дьявола': { cost: 40, effect: 'doubleChance', description: 'Удваивает шанс срабатывания эффектов кубиков (10% шанс на активацию).' },
+            'Печать Ада': { cost: 50, effect: 'extraRoll', description: 'Добавляет один дополнительный бросок за раунд.' }
+        };
+
+        function updateUI() {
+            document.getElementById('points').textContent = points;
+            document.getElementById('round').textContent = round;
+            const artifactCount = {};
+            artifacts.forEach(a => {
+                artifactCount[a.type] = (artifactCount[a.type] || 0) + 1;
+            });
+            const artifactDisplay = Object.entries(artifactCount).map(([type, count]) =>
+                count > 1 ? `${type} (x${count})` : type
+            ).join(', ') || 'Нет';
+            document.getElementById('artifacts').textContent = artifactDisplay;
+            const diceArea = document.getElementById('dice-area');
+            diceArea.innerHTML = '';
+            dice.forEach(d => {
+                const div = document.createElement('div');
+                div.className = `dice ${d.color} ${selectedDice.includes(d.id) ? 'selected' : ''}`;
+                div.textContent = d.type;
+                const tooltip = document.createElement('span');
+                tooltip.className = 'tooltip';
+                tooltip.textContent = diceTypes[d.type].description;
+                div.appendChild(tooltip);
+                div.onclick = () => toggleDice(d.id);
+                diceArea.appendChild(div);
+            });
+            // Блокируем кнопки покупки артефактов и слотов, если уже куплены
+            document.querySelectorAll('.buy-btn').forEach((btn, index) => {
+                const item = shopItems[index];
+                if (item && (artifactBoughtThisRound && item.type === 'artifact' || boughtItemsThisShop.has(index))) {
+                    btn.disabled = true;
+                    btn.parentElement.classList.add('bought');
+                } else {
+                    btn.disabled = false;
+                    btn.parentElement.classList.remove('bought');
+                }
+            });
+            // updateDevilComment();
+        }
+
+        function toggleDice(id) {
+            if (selectedDice.includes(id)) {
+                selectedDice = selectedDice.filter(d => d !== id);
+            } else if (selectedDice.length < maxDiceRoll) {
+                selectedDice.push(id);
+            }
+            updateUI();
+        }
+
+        function rollDice() {
+            if (!gameStarted || selectedDice.length === 0) {
+                if (!gameStarted) document.getElementById('devil-comment').textContent = "Начинай, жалкий смертный!";
+                else document.getElementById('result').textContent = 'Выбери хотя бы один кубик!';
+                return;
+            }
+            let total = 0;
+            let resultText = '';
+            rollResults = [];
+            let cursedCount = dice.filter(d => d.type === 'cursed-d6' && selectedDice.includes(d.id)).length;
+            let hasPureSoul = artifacts.some(a => a.type === 'Чистая душа');
+            let rerollUsed = false;
+            freeShopRerollActive = (cursedCount >= 2);
+
+            selectedDice.forEach(id => {
+                const die = dice.find(d => d.id === id);
+                let roll = Math.floor(Math.random() * diceTypes[die.type].sides) + 1;
+                let rollValue = roll;
+                let effects = [];
+
+                if (artifacts.some(a => a.type === 'Кровь Дьявола') && Math.random() < 0.1) {
+                    effects.push('Кровь Дьявола: эффект удвоен!');
+                    rollValue *= 2;
+                }
+
+                if (!rerollUsed && artifacts.some(a => a.type === 'Колесо удачи') && roll <= 2) {
+                    roll = Math.floor(Math.random() * diceTypes[die.type].sides) + 1;
+                    rollValue = roll;
+                    rerollUsed = true;
+                    effects.push('Авто-переброс');
+                }
+
+                if (die.type === 'cursed-d6' && roll === 6) {
+                    rollValue *= 2;
+                    effects.push('x2');
+                    if (!hasPureSoul && Math.random() < 0.3) {
+                        points = Math.max(0, points - 5);
+                        effects.push('Проклятье: -5');
+                    } else if (hasPureSoul && Math.random() < 0.3) {
+                        effects.push('Чистая душа: проклятье отменено');
+                    }
+                } else if (die.type === 'd8' && roll === 8) {
+                    total += 10;
+                    effects.push('+10');
+                    rollValue += 10;
+                } else if (die.type === 'd12' && roll === 12) {
+                    total += roll * 2;
+                    effects.push('x2 все');
+                    rollValue *= 2;
+                } else if (die.type === 'd20' && roll === 20) {
+                    total += 30;
+                    effects.push('+30');
+                    rollValue += 30;
+                }
+
+                const satanTeethCount = artifacts.filter(a => a.type === 'Зубы Сатаны').length;
+                if (satanTeethCount > 0 && die.type === 'cursed-d6') {
+                    const bonus = satanTeethCount * 2;
+                    rollValue += bonus;
+                    effects.push(`+${bonus} от Зубов Сатаны (x${satanTeethCount})`);
+                }
+                total += rollValue;
+                rollResults.push({ type: die.type, roll: roll, effects: effects, originalId: id });
+            });
+
+            const d6Count = selectedDice.filter(id => dice.find(d => d.id === id).type === 'd6').length;
+            if (d6Count === 3) {
+                total += 10;
+                resultText += 'Комбо: Три d6 (+10); ';
+            }
+
+            if (cursedCount >= 2) {
+                resultText += 'Комбо: Два проклятых кубика (бесплатный реролл магазина); ';
+            }
+
+            if (artifacts.some(a => a.type === 'Печать Ада')) {
+                const extraRoll = Math.floor(Math.random() * 6) + 1; // Пример дополнительного броска
+                total += extraRoll;
+                resultText += `Печать Ада: +${extraRoll}; `;
+            }
+
+            points += total;
+            displayRollResult(rollResults);
+            document.getElementById('result').textContent = `Итог: ${total} очков (${resultText})`;
+            round++;
+            selectedDice = [];
+            artifactBoughtThisRound = false;
+            boughtItemsThisShop.clear();
+
+            if (points >= 666) {
+                if (prestigeLevel === 0) {
+                    endGame("Ты победил! Но... время повернулось вспять! Я даю тебе шанс престижа!");
+                } else {
+                    endGame("Победа! Ты одолел меня снова!");
+                }
+                return;
+            }
+            if (round > maxRounds) {
+                endGame("Проигрыш! Твоя душа теперь моя!");
+                return;
+            }
+
+            shopItems = [
+                { type: 'dice', value: Object.keys(diceTypes)[Math.floor(Math.random() * Object.keys(diceTypes).length)] },
+                { type: 'dice', value: Object.keys(diceTypes)[Math.floor(Math.random() * Object.keys(diceTypes).length)] },
+                { type: 'artifact', value: Object.keys(prestigeLevel > 0 ? { ...artifactTypes, ...prestigeArtifacts } : artifactTypes)[Math.floor(Math.random() * Object.keys(prestigeLevel > 0 ? { ...artifactTypes, ...prestigeArtifacts } : artifactTypes).length)] }
+            ];
+            showShop();
+            updateUI();
+        }
+
+        function displayRollResult(results) {
+            const rollResult = document.getElementById('roll-result');
+            rollResult.style.display = 'flex';
+            rollResult.innerHTML = '';
+            results.forEach((result, index) => {
+                const div = document.createElement('div');
+                div.className = `result-dice ${diceTypes[result.type].color} ${artifacts.some(a => a.type === 'Колесо удачи') ? 'rerollable' : ''}`;
+                div.textContent = result.roll;
+                const tooltip = document.createElement('span');
+                tooltip.className = 'tooltip';
+                tooltip.textContent = result.effects.join(', ');
+                div.appendChild(tooltip);
+                if (artifacts.some(a => a.type === 'Колесо удачи')) {
+                    div.onclick = () => rerollDie(index);
+                }
+                rollResult.appendChild(div);
+            });
+        }
+
+        function rerollDie(index) {
+            if (!artifacts.some(a => a.type === 'Колесо удачи')) return;
+            const result = rollResults[index];
+            const oldRoll = result.roll;
+            const newRoll = Math.floor(Math.random() * diceTypes[result.type].sides) + 1;
+            result.roll = newRoll;
+            let totalAdjustment = newRoll - oldRoll;
+            points += totalAdjustment;
+            artifacts = artifacts.filter(a => a.type !== 'Колесо удачи');
+            displayRollResult(rollResults);
+            updateUI();
+            document.getElementById('result').textContent = `Переброс! Новое значение: ${newRoll}. "Колесо удачи" израсходовано.`;
+        }
+
+        function showShop() {
+            const shopArea = document.getElementById('shop-area');
+            shopArea.style.display = 'flex';
+            shopArea.innerHTML = '';
+            shopItems.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = `shop-item ${boughtItemsThisShop.has(index) ? 'bought' : ''}`;
+                const cost = item.type === 'dice' ? diceTypes[item.value].cost : (prestigeLevel > 0 && prestigeArtifacts[item.value] ? prestigeArtifacts[item.value].cost : artifactTypes[item.value].cost);
+                div.innerHTML = `${item.type === 'dice' ? item.value : item.value}<br><span style="color: #ffcc00">${cost} очков</span>`;
+                const tooltip = document.createElement('span');
+                tooltip.className = 'tooltip';
+                tooltip.textContent = item.type === 'dice' ? diceTypes[item.value].description : (prestigeLevel > 0 && prestigeArtifacts[item.value] ? prestigeArtifacts[item.value].description : artifactTypes[item.value].description);
+                div.appendChild(tooltip);
+                const buyButton = document.createElement('button');
+                buyButton.className = 'buy-btn';
+                buyButton.textContent = 'КУПИТЬ';
+                buyButton.onclick = () => buyItem(index);
+                div.appendChild(buyButton);
+                shopArea.appendChild(div);
+            });
+
+            const refreshButton = document.createElement('button');
+            refreshButton.textContent = freeShopRerollActive ? 'ОБНОВИТЬ (0 очков)' : 'ОБНОВИТЬ (5 очков)';
+            refreshButton.onclick = () => {
+                if (freeShopRerollActive || points >= 5) {
+                    if (!freeShopRerollActive) points -= 5;
+                    shopItems = [
+                        { type: 'dice', value: Object.keys(diceTypes)[Math.floor(Math.random() * Object.keys(diceTypes).length)] },
+                        { type: 'dice', value: Object.keys(diceTypes)[Math.floor(Math.random() * Object.keys(diceTypes).length)] },
+                        { type: 'artifact', value: Object.keys(prestigeLevel > 0 ? { ...artifactTypes, ...prestigeArtifacts } : artifactTypes)[Math.floor(Math.random() * Object.keys(prestigeLevel > 0 ? { ...artifactTypes, ...prestigeArtifacts } : artifactTypes).length)] }
+                    ];
+                    freeShopRerollActive = false;
+                    showShop();
+                    updateUI();
+                    refreshButton.style.background = 'linear-gradient(90deg, #ff5555, #ff7777)';
+                    setTimeout(() => refreshButton.style.background = 'linear-gradient(90deg, #666, #888)', 300);
+                } else {
+                    document.getElementById('result').textContent = 'Недостаточно очков для обновления!';
+                    refreshButton.style.background = 'linear-gradient(90deg, #ff3333, #ff5555)';
+                    setTimeout(() => refreshButton.style.background = 'linear-gradient(90deg, #666, #888)', 300);
+                }
+            };
+            shopArea.appendChild(refreshButton);
+        }
+
+        function buyItem(index) {
+            const item = shopItems[index];
+            const cost = item.type === 'dice' ? diceTypes[item.value].cost : (prestigeLevel > 0 && prestigeArtifacts[item.value] ? prestigeArtifacts[item.value].cost : artifactTypes[item.value].cost);
+            if (points < cost) {
+                document.getElementById('result').textContent = 'Недостаточно очков!';
+                return;
+            }
+            if (item.type === 'artifact' && artifactBoughtThisRound) {
+                document.getElementById('result').textContent = 'Можно купить только один артефакт за раунд!';
+                return;
+            }
+            if (boughtItemsThisShop.has(index)) {
+                document.getElementById('result').textContent = 'Этот слот уже куплен в этом магазине!';
+                return;
+            }
+            points -= cost;
+            if (item.type === 'dice') {
+                dice.push({
+                    type: item.value,
+                    id: dice.length + 1,
+                    color: diceTypes[item.value].color,
+                    passive: diceTypes[item.value].spell
+                });
+            } else {
+                artifacts.push({ type: item.value, effect: (prestigeLevel > 0 && prestigeArtifacts[item.value] ? prestigeArtifacts[item.value].effect : artifactTypes[item.value].effect) });
+                if (item.value === 'Мешочек') maxDiceRoll++;
+                if (item.value === 'Печать Ада') maxDiceRoll++; // Временное увеличение для дополнительного броска
+                artifactBoughtThisRound = true;
+            }
+            boughtItemsThisShop.add(index);
+            showShop();
+            updateUI();
+            document.querySelectorAll('.buy-btn')[index].style.background = 'linear-gradient(90deg, #00cc00, #33ff33)';
+            setTimeout(() => document.querySelectorAll('.buy-btn')[index].style.background = 'linear-gradient(90deg, #666, #888)', 300);
+        }
+
+        function endGame(message) {
+            document.getElementById('end-message').textContent = message;
+            document.getElementById('final-score').textContent = points;
+            document.getElementById('final-rounds').textContent = round - 1;
+            document.getElementById('end-screen').classList.add('show');
+            document.getElementById('roll-button').disabled = true;
+            document.body.style.background = 'linear-gradient(135deg, #4a2e1a, #3e2116)';
+            if (message.includes("Ты победил") && prestigeLevel === 0) {
+                document.getElementById('restart-button').textContent = "Престиж (сброс)";
+                document.getElementById('restart-button').onclick = () => {
+                    prestigeLevel++;
+                    resetGame();
+                };
+            } else {
+                document.getElementById('restart-button').textContent = "Начать заново";
+                document.getElementById('restart-button').onclick = () => {
+                    location.reload();
+                };
+            }
+        }
+
+        function resetGame() {
+            points = 0;
+            round = 1;
+            dice = [
+                { type: 'd6', id: 1, color: 'd6', passive: null },
+                { type: 'd6', id: 2, color: 'd6', passive: null },
+                { type: 'd6', id: 3, color: 'd6', passive: null }
+            ];
+            artifacts = [];
+            maxDiceRoll = 3;
+            selectedDice = [];
+            shopItems = [];
+            rollResults = [];
+            artifactBoughtThisRound = false;
+            freeShopRerollActive = false;
+            boughtItemsThisShop.clear();
+            document.getElementById('end-screen').classList.remove('show');
+            document.getElementById('roll-button').disabled = false;
+            document.body.style.background = 'linear-gradient(135deg, #1a1a2e, #16213e)';
+            showShop();
+            updateUI();
+        }
+
+        // function updateDevilComment() {
+        //     if (Math.random() < 0.3) {
+        //         const comments = [
+        //             "Ха-ха-ха! Ты никогда не выиграешь, смертный!",
+        //             "Я вижу твои жалкие броски... Смешно!",
+        //             "Душа уже моя, продолжай суетиться!",
+        //             "О, слабак, даже дьяволу скучно смотреть!",
+        //             "666? Тебе до этого не дойти!"
+        //         ];
+        //         document.getElementById('devil-comment').textContent = comments[Math.floor(Math.random() * comments.length)];
+        //     } else {
+        //         document.getElementById('devil-comment').textContent = "";
+        //     }
+        // }
+
+        document.getElementById('start-button').onclick = () => {
+            document.getElementById('tutorial-screen').classList.remove('show');
+            gameStarted = true;
+            showShop();
+            updateUI();
+        };
+
+        document.getElementById('roll-button').onclick = rollDice;
+        document.getElementById('tutorial-screen').classList.add('show');
+    </script>
+</body>
+
+</html>
